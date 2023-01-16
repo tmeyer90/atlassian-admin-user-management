@@ -1,0 +1,134 @@
+{% extends "layout.html" %}
+{% block header %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/user/user.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+{% endblock header %}
+{% block content %}
+<h2 class="mt-4">{{ title }}</h2>
+<div class="container">
+    {% if users %}
+    <div class="row">
+        <div class="col mt-3 mb-3">
+            The data was collected on <b>{{ last_sync }}</b> and took {{ duration }} seconds. You can re-fetch the data
+            using this <a href="/users/fetch">link</a>.
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Small button group">
+                            {% if showPois == 'true' %}
+            <button type="button" class="btn btn-primary" onclick="showPois(false)"><i class="fa-regular fa-gem"></i>
+                Show only PoI's
+            </button>
+            {% else %}
+                <button type="button" class="btn btn-outline-secondary" onclick="showPois(true)"><i class="fa-regular fa-gem"></i>
+                Show only PoI's
+            </button>
+            {% endif %}
+                {% if includeInactive == 'false' %}
+            <button type="button" class="btn btn-secondary" onclick="includeInactive(true)"><i
+                    class="fa-solid fa-eye-slash"></i> Hide inactive
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-outline-secondary" onclick="includeInactive(false)">
+                <i class="fa-solid fa-eye-slash"></i> Hide inactive
+            </button>
+            {% endif %}
+                {% if includeNonBillable == 'false' %}
+            <button type="button" class="btn btn-secondary" onclick="hideNonBillable(true)"><i
+                    class="fa-solid fa-eye-slash"></i> Hide non billable
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-outline-secondary"
+                    onclick="hideNonBillable(false)"><i class="fa-solid fa-eye-slash"></i> Hide non billable
+            </button>
+            {% endif %}
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()"><i
+                    class="fa-solid fa-ban"></i> Clear all filters
+            </button>
+            </div>
+        </div>
+    </div>
+    {% if showPois == 'true' and daysInactive and end_date %}
+    <div class="row mt-2">
+        <div class="col-3" id="rangeLabel" style="padding-right: 0px !important;">
+            {% if daysInactive == 366 %}
+            Idle more then 1 year
+            {% elif daysInactive == 367 %}
+            Never logged in
+            {% else %}
+            Idle more than {{ daysInactive }} days ({{ end_date.strftime('%d.%m.%y') }})
+            {% endif %}
+        </div>
+        <div class="col-9">
+            <input type="range" class="form-range" min="1" max="367" step="1" id="idleTime" value="{{ daysInactive }}" onchange="rangeFilter(this.value)" oninput="rangeUpdateLabel(this.value)">
+        </div>
+    </div>
+    {% endif %}
+    <div class="row">
+        <div class="col">
+            <div class="mt-2">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col"></th>
+                        <th scope="col">Name</th>
+                        <th scope="col">E-Mail</th>
+                        <th class="text-center" scope="col">Access Billable</th>
+                        <th class="text-center" scope="col">Status</th>
+                        <th class="text-center" scope="col">Products</th>
+                        <th scope="col">Last Activity</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in users %}
+                    <tr>
+                        {% if user.account_status == 'active' and user.access_billable and (not user.last_active or user.last_active <= end_date) %}
+                        <td><i class="fa-regular fa-gem text-primary"></i></td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        {% if user.access_billable %}
+                        <td class="text-center"><i class="fa-solid fa-circle-check text-success"></i></td>
+                        {% else %}
+                        <td class="text-center"><i class="fa-solid fa-circle-xmark text-danger"></i></td>
+                        {% endif %}
+                        {% if user.account_status == 'active' %}
+                        <td class="text-center"><span
+                                class="badge text-bg-success">{{ user.account_status.upper() }}</span></td>
+                        {% elif user.account_status == 'inactive' %}
+                        <td class="text-center"><span
+                                class="badge text-bg-warning">{{ user.account_status.upper() }}</span></td>
+                        {% elif user.account_status == 'closed' %}
+                        <td class="text-center"><span
+                                class="badge text-bg-danger">{{ user.account_status.upper() }}</span></td>
+                        {% else %}
+                        <td class="text-center"><span
+                                class="badge text-bg-secondary">{{ user.account_status.upper() }}</span></td>
+                        {% endif %}
+                        <td class="text-center">
+                            {{ user.product_accesses|length }}
+                        </td>
+                        {% if user.last_active %}
+                        <td>{{ user.last_active.strftime('%d.%m.%Y') }}</td>
+                        {% else %}
+                        <td>Never</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col mt-4">
+            You can fetch the user data using this <a href="/users/fetch">link</a>.
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}
