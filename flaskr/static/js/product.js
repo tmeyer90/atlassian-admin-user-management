@@ -6,14 +6,6 @@ function includeInactive(value) {
     }
 };
 
-function hideNonBillable(value) {
-    if ('URLSearchParams' in window) {
-        var searchParams = new URLSearchParams(window.location.search);
-        searchParams.set("includeNonBillable", value);
-        window.location.search = searchParams.toString();
-    }
-};
-
 function showPois(value) {
     if ('URLSearchParams' in window) {
         var searchParams = new URLSearchParams(window.location.search);
@@ -25,7 +17,8 @@ function showPois(value) {
 function clearFilters() {
 if ('URLSearchParams' in window) {
         var searchParams = new URLSearchParams(window.location.search);
-        window.location.search = '';
+        var name = searchParams.get("name");
+        window.location.search = "?name=" + name;
     }
 }
 
@@ -49,3 +42,9 @@ function rangeUpdateLabel(value) {
         document.getElementById('rangeLabel').innerHTML = "Idle more than " + value + " days (" + date.toLocaleDateString("de-DE") + ")";
     }
 }
+
+$(document).ready(function () {
+    var table = $('#product-table').DataTable({
+        dom: "Bfrti"
+    });
+});

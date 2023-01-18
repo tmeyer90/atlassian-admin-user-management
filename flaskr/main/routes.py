@@ -1,3 +1,5 @@
+import json
+
 from flask import render_template, request, Blueprint, redirect, url_for, current_app
 from flaskr import constants as c
 from sqlalchemy import or_
@@ -9,8 +11,8 @@ import datetime
 main = Blueprint('main', __name__)
 
 
-@main.route("/")
-@main.route("/home")
+@main.route("/", methods=['GET'])
+@main.route("/home", methods=['GET'])
 def home():
     organisation = Organisation.query.first()
     if organisation:
@@ -33,39 +35,12 @@ def home():
         return render_template('home.html')
 
 
-@main.route("/users")
+@main.route("/users", methods=['GET'])
 def get_users():
     all_users = User.query.all()
     if len(all_users) == 0:
         return redirect(url_for('main.fetch_users'))
-    includeInactive = request.args.get('includeInactive')
-    includeNonBillable = request.args.get('includeNonBillable')
-    showPois = request.args.get('showPois')
-    daysInactive = request.args.get('daysInactive')
-    query_users = User.query
-    if showPois and showPois == 'true':
-        includeInactive = 'false'
-        includeNonBillable = 'false'
-    if includeInactive and includeInactive.lower() == 'false':
-        query_users = query_users.filter(User.account_status == 'active')
-    if includeNonBillable and includeNonBillable.lower() == 'false':
-        query_users = query_users.filter(User.access_billable == True)
-    if daysInactive:
-        daysInactive = int(daysInactive)
-        if daysInactive < 1:
-            daysInactive = 1
-        if daysInactive > 367:
-            daysInactive = 367
-        if daysInactive == 366:
-            query_users = query_users.filter(User.last_active == None)
-        else:
-            query_users = query_users.filter(or_(User.last_active == None,
-                                                 User.last_active < datetime.datetime.now() - datetime.timedelta(days=daysInactive)))
-        end_date = get_end_date(daysInactive)
-    else:
-        daysInactive = 30
-        end_date = get_end_date(30)
-    users = query_users.all()
+    users, end_date, days_inactive = handle_args_query(query=User.query, args=request.args)
     return render_template('user.html',
                            users=users,
                            title='Overview of all managed users',
@@ -73,10 +48,10 @@ def get_users():
                            last_sync=get_last_sync(),
                            duration=get_duration(),
                            products=get_products(),
-                           includeInactive=includeInactive,
-                           includeNonBillable=includeNonBillable,
-                           showPois=showPois,
-                           daysInactive=daysInactive,
+                           includeInactive=request.args.get('includeInactive'),
+                           includeNonBillable=request.args.get('includeNonBillable'),
+                           showPois=request.args.get('showPois'),
+                           daysInactive=days_inactive,
                            end_date=end_date)
 
 
@@ -84,9 +59,7 @@ def get_users():
 def fetch_users():
     if request.method == 'GET':
         return render_template('user_fetch.html',
-                               title="Fetch users",
-                               last_sync=get_last_sync(),
-                               duration=get_duration())
+                               title="Fetch users")
     if request.method == 'POST':
         User.query.delete()
         ProductAccess.query.delete()
@@ -138,37 +111,93 @@ def fetch_users():
         return redirect(url_for('main.get_users'))
 
 
-@main.route("/product/<site_id>")
+@main.route("/user/<user_id>/products", methods=['GET'])
+def get_user_products(user_id):
+    product_access = ProductAccess.query.filter(ProductAccess.user_id == user_id).all()
+    products = []
+    for product in product_access:
+        if product.last_active:
+            last_active = product.last_active.strftime("%d.%m.%Y")
+        else:
+            last_active = 'Never'
+        products.append({
+            "name": product.name,
+            "url": product.url,
+            "last_active": last_active,
+            "site_id": product.site_id
+        })
+    return products
+
+
+@main.route("/product/<site_id>", methods=['GET'])
 def product_info(site_id):
+    all_products = ProductAccess.query.all()
+    if len(all_products) == 0:
+        return redirect(url_for('main.fetch_users'))
     name = request.args.get('name')
-    includeInactive = request.args.get('includeInactive')
-    includeNonBillable = request.args.get('includeNonBillable')
-    query_users = User.query.join(ProductAccess, User.id == ProductAccess.user_id)\
-        .filter(ProductAccess.site_id == site_id)\
-        .filter(ProductAccess.name == name)
-    if includeInactive and includeInactive.lower() == 'false':
-        query_users = query_users.filter(User.account_status == 'active')
-    if includeNonBillable and includeNonBillable.lower() == 'false':
-        query_users = query_users.filter(User.access_billable == True)
-    users = query_users.all()
-    if not users:
-        return render_template('user.html',
-                               users=users,
-                               title='Users',
+    query_products = db.session.query(User, ProductAccess).select_from(User).join(ProductAccess,
+                                                                                  User.id == ProductAccess.user_id) \
+        .filter(ProductAccess.site_id == site_id)
+    query_url = ProductAccess.query.filter(ProductAccess.site_id == site_id).first()
+    if name:
+        query_products = query_products.filter(ProductAccess.name == name)
+        title = query_url.url.replace('.atlassian.net', '') + " - " + name
+    else:
+        title = query_url.url.replace('.atlassian.net', '')
+    results, end_date, days_inactive = handle_args_query(query=query_products, args=request.args)
+    if not results:
+        return render_template('product.html',
+                               results=results,
+                               title=title,
                                organisation=get_organisation())
-    return render_template('user.html',
-                           users=users,
-                           title=name,
+    end_date = get_end_date(30)
+    return render_template('product.html',
+                           results=results,
+                           title=title,
                            organisation=get_organisation(),
                            last_sync=get_last_sync(),
                            duration=get_duration(),
                            products=get_products(),
-                           includeInactive=includeInactive,
-                           includeNonBillable=includeNonBillable)
+                           includeInactive=request.args.get('includeInactive'),
+                           includeNonBillable=request.args.get('includeNonBillable'),
+                           showPois=request.args.get('showPois'),
+                           daysInactive=days_inactive,
+                           end_date=end_date)
+
+
+def handle_args_query(query, args):
+    include_inactive = args.get('includeInactive')
+    include_non_billable = args.get('includeNonBillable')
+    show_pois = args.get('showPois')
+    days_inactive = args.get('daysInactive')
+    if show_pois and show_pois == 'true':
+        include_inactive = 'false'
+        include_non_billable = 'false'
+    if include_inactive and include_inactive.lower() == 'false':
+        query = query.filter(User.account_status == 'active')
+    if include_non_billable and include_non_billable.lower() == 'false':
+        query = query.filter(User.access_billable == True)
+    if days_inactive:
+        days_inactive = int(days_inactive)
+        if days_inactive < 1:
+            days_inactive = 1
+        if days_inactive > 367:
+            days_inactive = 367
+        if days_inactive == 366:
+            query = query.filter(User.last_active == None)
+        else:
+            query = query.filter(or_(User.last_active == None,
+                                     User.last_active < datetime.datetime.now() - datetime.timedelta(
+                                         days=days_inactive)))
+        end_date = get_end_date(days_inactive)
+    else:
+        days_inactive = 30
+        end_date = get_end_date(30)
+    return query.all(), end_date, days_inactive
 
 
 def get_products():
-    return db.session.query(ProductAccess.name, ProductAccess.site_id, ProductAccess.url).distinct().all()
+    return db.session.query(ProductAccess.name, ProductAccess.site_id, ProductAccess.url).distinct().order_by(ProductAccess.url.desc()).all()
 
 
 def get_organisation():
@@ -187,6 +216,8 @@ def get_duration():
     last_sync = Properties.query.filter(Properties.key == 'user-sync-end').first()
     if last_sync:
         last_sync_dt = datetime.datetime.strptime(last_sync.value, "%d.%m.%Y, %H:%M:%S")
+    else:
+        return None
     begin_sync = Properties.query.filter(Properties.key == 'user-sync-start').first()
     if begin_sync:
         begin_sync_dt = datetime.datetime.strptime(begin_sync.value, "%d.%m.%Y, %H:%M:%S")

@@ -1,12 +1,12 @@
 {% extends "layout.html" %}
 {% block header %}
-<script type="text/javascript" src="{{ url_for('static', filename='js/user.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/product.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 {% endblock header %}
 {% block content %}
 <h2 class="mt-4">{{ title }}</h2>
 <div class="container">
-    {% if users %}
+    {% if results %}
     <div class="row">
         <div class="col mt-3 mb-3">
             The data was collected on <b>{{ last_sync }}</b> and took {{ duration }} seconds. You can re-fetch the data
@@ -34,15 +34,6 @@
                 <i class="fa-solid fa-eye-slash"></i> Hide inactive
             </button>
             {% endif %}
-                {% if includeNonBillable == 'false' %}
-            <button type="button" class="btn btn-secondary" onclick="hideNonBillable(true)"><i
-                    class="fa-solid fa-eye-slash"></i> Hide non billable
-            </button>
-            {% else %}
-            <button type="button" class="btn btn-outline-secondary"
-                    onclick="hideNonBillable(false)"><i class="fa-solid fa-eye-slash"></i> Hide non billable
-            </button>
-            {% endif %}
                             <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()"><i
                     class="fa-solid fa-ban"></i> Clear all filters
             </button>
@@ -68,59 +59,47 @@
     <div class="row">
         <div class="col">
             <div class="mt-2">
-                <table class="table table-striped" id="user-table">
+                <table class="table table-striped" id="product-table">
                     <thead>
                     <tr>
                         <th scope="col"></th>
                         <th scope="col" style="display: none;">id</th>
                         <th scope="col">Name</th>
                         <th scope="col">E-Mail</th>
-                        <th class="text-center" scope="col">Access Billable</th>
                         <th class="text-center" scope="col">Status</th>
-                        <th class="text-center" scope="col">Products</th>
+                        <th class="text-center" scope="col">Product</th>
                         <th scope="col">Last Activity</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {% for user in users %}
+                    {% for result in results %}
                     <tr>
-                        {% if user.account_status == 'active' and user.access_billable and (not user.last_active or user.last_active <= end_date) %}
+                        {% if result.User.account_status == 'active' and result.User.access_billable and (not result.User.last_active or result.User.last_active <= end_date) %}
                         <td><i class="fa-regular fa-gem text-primary"></i></td>
                         {% else %}
                         <td></td>
                         {% endif %}
-                        <td style="display: none;">{{ user.id }}</td>
-                        <td>{{ user.name }}</td>
-                        <td>{{ user.email }}</td>
-                        {% if user.access_billable %}
-                        <td class="text-center"><i class="fa-solid fa-circle-check text-success"></i></td>
+                        <td style="display: none;">{{ result.User.id }}</td>
+                        <td>{{ result.User.name }}</td>
+                        <td>{{ result.User.email }}</td>
+                        {% if result.User.account_status == 'active' %}
+                        <td class="text-center"><span
+                                class="badge text-bg-success">{{ result.User.account_status.upper() }}</span></td>
+                        {% elif result.User.account_status == 'inactive' %}
+                        <td class="text-center"><span
+                                class="badge text-bg-warning">{{ result.User.account_status.upper() }}</span></td>
+                        {% elif result.User.account_status == 'closed' %}
+                        <td class="text-center"><span
+                                class="badge text-bg-danger">{{ result.User.account_status.upper() }}</span></td>
                         {% else %}
-                        <td class="text-center"><i class="fa-solid fa-circle-xmark text-danger"></i></td>
+                        <td class="text-center"><span
+                                class="badge text-bg-secondary">{{ result.User.account_status.upper() }}</span></td>
                         {% endif %}
-                        {% if user.account_status == 'active' %}
-                        <td class="text-center"><span
-                                class="badge text-bg-success">{{ user.account_status.upper() }}</span></td>
-                        {% elif user.account_status == 'inactive' %}
-                        <td class="text-center"><span
-                                class="badge text-bg-warning">{{ user.account_status.upper() }}</span></td>
-                        {% elif user.account_status == 'closed' %}
-                        <td class="text-center"><span
-                                class="badge text-bg-danger">{{ user.account_status.upper() }}</span></td>
-                        {% else %}
-                        <td class="text-center"><span
-                                class="badge text-bg-secondary">{{ user.account_status.upper() }}</span></td>
-                        {% endif %}
-                        {% if user.product_accesses|length > 0 %}
-                        <td class="text-center dt-control">
-                            {{ user.product_accesses|length }}
-                        </td>
-                        {% else %}
                         <td class="text-center">
-                            {{ user.product_accesses|length }}
+                            {{ result.ProductAccess.name }}
                         </td>
-                        {% endif %}
-                        {% if user.last_active %}
-                        <td>{{ user.last_active.strftime('%d.%m.%Y') }}</td>
+                        {% if result.ProductAccess.last_active %}
+                        <td>{{ result.ProductAccess.last_active.strftime('%d.%m.%Y') }}</td>
                         {% else %}
                         <td>Never</td>
                         {% endif %}
