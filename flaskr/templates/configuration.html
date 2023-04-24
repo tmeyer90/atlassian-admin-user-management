@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+{% block header %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/configuration.js') }}"></script>
+<link href="{{ url_for('static', filename='DataTables/Editor-2.1.2/css/editor.dataTables.min.css') }}" rel="stylesheet"/>
+<script type="text/javascript" src="{{ url_for('static', filename='DataTables/Editor-2.1.2/js/dataTables.editor.min.js') }}"></script>
+<link href="{{ url_for('static', filename='DataTables/Select-1.6.2/css/select.dataTables.min.css') }}" rel="stylesheet"/>
+<script type="text/javascript" src="{{ url_for('static', filename='DataTables/Select-1.6.2/js/dataTables.select.min.js') }}"></script>
+<link href="{{ url_for('static', filename='DataTables/DateTime-1.4.1/css/dataTables.dateTime.min.css') }}" rel="stylesheet"/>
+<script type="text/javascript" src="{{ url_for('static', filename='DataTables/DateTime-1.4.1/js/dataTables.dateTime.min.js') }}"></script>
+{% endblock header %}
+{% block content %}
+<div class="container">
+    <h2 class="mt-4 mb-4">Configuration</h2>
+    <div class="d-flex align-items-start">
+        <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical" style="width: 18%;">
+            <button class="nav-link active mb-2" id="v-pills-atlas-org-tab" data-bs-toggle="pill" data-bs-target="#v-pills-atlas-org"
+                    type="button" role="tab" aria-controls="v-pills-atlas-org" aria-selected="true"><i class="fa-solid fa-user-secret"></i> Authentication
+            </button>
+            <button class="nav-link mb-2" id="v-pills-sites-tab" data-bs-toggle="pill" data-bs-target="#v-pills-sites"
+                    type="button" role="tab" aria-controls="v-pills-sites" aria-selected="false"><i class="fa-solid fa-clone"></i> Sites
+            </button>
+            <button class="nav-link mb-2" id="v-pills-billing-tab" data-bs-toggle="pill" data-bs-target="#v-pills-billing"
+                    type="button" role="tab" aria-controls="v-pills-billing" aria-selected="false"><i class="fa-solid fa-coins"></i> Billing
+            </button>
+        </div>
+        <div class="tab-content" id="v-pills-tabContent" style="width:100%;">
+            <div class="tab-pane fade show active" id="v-pills-atlas-org" role="tabpanel" aria-labelledby="v-pills-atlas-org-tab"
+                 tabindex="0">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-4 mt-4" style="padding-left: 2em;">
+                            <h3 class="mt-4 mb-4"><i class="fa-solid fa-user-secret"></i> Authentication</h3>
+                            <p>Unfortunately Atlassian split the authentication for different end points. That means we need to configure both, an oranisation API Token and a personal API Token.
+                                For the organisation API Token visit <a href="https://support.atlassian.com/organization-administration/docs/manage-an-organization-with-the-admin-apis/" target="_blank">page</a>.
+                                For the personal API token you find the information <a href="https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/" target="_blank">here</a>.
+                                I will store this information unencrypted in the database of this docker container. I will never expose the API token! They're only used in the backend to authenticate the requests.
+                                You can find all used REST Endpoints from Atlassian with this <a href="/atlas-rest-endpoints" target="_blank">link.</a></p>
+                            <form class="needs-validation" action="/configuration/atlas" method="POST" novalidate id="org-config">
+                                <h5 class="mb-4"><i class="fa-solid fa-building"></i> Organisation</h5>
+                                <div class="row mb-3">
+                                    <label for="inputOrganisationName" class="col-sm-3 col-form-label"><i
+                                            class="fa-solid fa-building"></i> Organisation Name</label>
+                                    <div class="col-sm-6">
+                                        <input type="text" class="form-control" id="inputOrganisationName" name="organisationName"
+                                               placeholder="Please enter an organisation API Key"
+                                               value="{{'' if not properties.get(c.ORG_NAME) else properties.get(c.ORG_NAME)}}"
+                                               disabled>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="inputOrganisationId" class="col-sm-3 col-form-label"><i
+                                            class="fa-solid fa-hashtag"></i> Organisation ID</label>
+                                    <div class="col-sm-6">
+                                        <input type="text" class="form-control" id="inputOrganisationId" name="organisationId"
+                                               placeholder="Please enter an organisation API Key"
+                                               value="{{'' if not properties.get(c.ORG_ID) else properties.get(c.ORG_ID)}}"
+                                               disabled>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="inputAPIKey" class="col-sm-3 col-form-label"><i
+                                            class="fa-solid fa-key"></i> API Key</label>
+                                    <div class="col-sm-6">
+                                        <input type="password" class="form-control" id="inputAPIKey" name="apiKey"
+                                               placeholder="Enter an API key of your organisation"
+                                               value="{{'' if not properties.get(c.ORG_API_KEY) else c.PW_OBF}}" required>
+                                        <div class="invalid-feedback">
+                                            Please enter a valid API token of your organisation.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="inputValidUntil" class="col-sm-3 col-form-label"><i
+                                            class="fa-solid fa-clock"></i> Valid Until</label>
+                                    <div class="col-sm-6">
+                                        <input type="date" class="form-control" id="inputValidUntil" name="validUntil"
+                                               value="{{properties.get(c.ORG_API_KEY_VALID)}}" required>
+                                    </div>
+                                </div>
+                                <hr />
+                                <h5 class="mb-4"><i class="fa-solid fa-user-tie"></i> Personal</h5>
+                                <div class="row mb-3">
+                                    <label for="inputSite" class="col-sm-3 col-form-label"><i class="fa-regular fa-rectangle-list"></i> Site</label>
+                                    <div class="col-sm-6">
+                                        <input type="text" class="form-control" id="inputSite" name="site"
+                                               placeholder="Enter a site: https://<SITE>.atlassian.net/"
+                                               value="{{'' if not properties.get(c.ORG_SITE) else properties.get(c.ORG_SITE)}}"
+                                               required>
+                                        <div class="invalid-feedback">
+                                            Please enter a site.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="inputEmailAddress" class="col-sm-3 col-form-label"><i class="fa-solid fa-envelope"></i> E-Mail Address</label>
+                                    <div class="col-sm-6">
+                                        <input type="text" class="form-control" id="inputEmailAddress" name="email"
+                                               placeholder="Enter your e-mail address of your Atlassian account"
+                                               value="{{'' if not properties.get(c.USER_MAIL) else properties.get(c.USER_MAIL)}}"
+                                               required>
+                                        <div class="invalid-feedback">
+                                            Please enter your e-mail address.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="inputPAPIKey" class="col-sm-3 col-form-label"><i
+                                            class="fa-solid fa-key"></i> API Key</label>
+                                    <div class="col-sm-6">
+                                        <input type="password" class="form-control" id="inputPAPIKey" name="pApiKey"
+                                               placeholder="Enter your API key"
+                                               value="{{'' if not properties.get(c.USER_PAT) else c.PW_OBF}}" required>
+                                        <div class="invalid-feedback">
+                                            Please enter a valid API token.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <label for="inputPValidUntil" class="col-sm-3 col-form-label"><i
+                                            class="fa-solid fa-clock"></i> Valid Until</label>
+                                    <div class="col-sm-6">
+                                        <input type="date" class="form-control" id="inputPValidUntil" name="validPUntil"
+                                               value="{{properties.get(c.USER_PAT_VALID)}}" required>
+                                    </div>
+                                </div>
+                                <button type="submit" name="action" value="post" class="btn btn-primary offset-sm-3 col-sm-3 mt-4 mb-4"><i
+                                        class="fa-solid fa-paper-plane"></i> Check and Store
+                                </button>
+                                <button class="btn btn-danger offset-sm-1 col-sm-2 mt-4 mb-4" name="action" value="delete"><i
+                                        class="fa-solid fa-trash-can"></i> Clear
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-sites" role="tabpanel" aria-labelledby="v-pills-sites-tab"
+                 tabindex="0">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-4 mt-4" style="padding-left: 2em;">
+                            <h3 class="mt-4"><i class="fa-solid fa-clone"></i> Sites</h3>
+                            <p>Because Atlassian doesn't provide functionalities to load the sites for your instance, you have to configure it once!
+                            You can get the information from <a href="https://admin.atlassian.com/o/{{ properties.get(c.ORG_ID) }}/products" target="_blank">this</a> page.</p>
+                            <table id="sites-table" class="table table-striped mt-4" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Site</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                        </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-billing" role="tabpanel" aria-labelledby="v-pills-billing-tab"
+                 tabindex="0">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-4 mt-4" style="padding-left: 2em;">
+                            <h3 class="mt-4 mb-4"><i class="fa-solid fa-coins"></i> Billing</h3>
+                            <button class="btn btn-sm btn-secondary col-sm-4 mb-4" id="reload-product-btn">
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Reload products & apps
+                            </button>
+                            <button class="btn btn-sm btn-secondary col-sm-4 mb-4" id="reload-product-spinner-btn" type="button" disabled style="display: none;">
+                              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                              Loading...
+                            </button>
+                            <p>Please update the plan, billing cycle and next billing date according <a href="https://admin.atlassian.com/o/{{ properties.get(c.ORG_ID) }}/billing-preview" target="_blank">this</a> page.</p>
+                            <table id="billing-table" class="table table-striped mt-4" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Site</th>
+                                    <th>Product</th>
+                                    <th>Plan</th>
+                                    <th>Billing Cycle</th>
+                                    <th>Next Billing</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock content %}

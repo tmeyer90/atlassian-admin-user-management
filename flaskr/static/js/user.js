@@ -93,7 +93,12 @@ function format(d) {
 
 $(document).ready(function () {
     var table = $('#user-table').DataTable({
-        dom: "Bfrti"
+        dom: '<"row"<"col-6"l><"col-6"f>>rt<"row"<"col-6"i><"col-6"p>>',
+        pagingType: 'full_numbers',
+        lengthMenu: [
+            [50, 250, 500, 1000, -1],
+            [50, 250, 500, 1000, 'All'],
+        ],
     });
     // Add event listener for opening and closing details
     $('#user-table tbody').on('click', 'td.dt-control', function () {

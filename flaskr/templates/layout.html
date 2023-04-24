@@ -4,43 +4,50 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <!-- Bootstrap CSS -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
     <script src="https://kit.fontawesome.com/ed1cdf7e59.js" crossorigin="anonymous"></script>
     <!-- Datatables -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='DataTables/datatables.min.css') }}"/>
     <script type="text/javascript" src="{{ url_for('static', filename='DataTables/datatables.min.js') }}"></script>
+    <!-- Fontawesome -->
+    <script src="https://kit.fontawesome.com/ed1cdf7e59.js" crossorigin="anonymous"></script>
     <!-- Local -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
     <script type="text/javascript" src="{{ url_for('static', filename='js/main.js') }}"></script>
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     {% block header %}{% endblock %}
     {% if title %}
-        <title>Administration - {{ title }}</title>
+        <title>Atlas User Management - {{ title }}</title>
     {% else %}
-        <title>Administration</title>
+        <title>Atlas User Management</title>
     {% endif %}
 </head>
 <body>
     <header class="site-header">
       <nav class="navbar navbar-expand-md bg-white fixed-top shadow">
         <div class="container">
-          <a class="navbar-brand mr-4" href="/">
-            <img src="https://veniture.net/hubfs/atlassian.png" alt="Administration" style="width:25px;height:25px;"> Extended
+          <a class="navbar-brand" href="/">
+            <img src="https://veniture.net/hubfs/atlassian.png" alt="Administration" style="width:25px;height:30px;padding-bottom:5px;"> Extended
           </a>
             <ul class="navbar-nav">
-                {% if organisation %}
-                <li class="nav-item"><div class="nav-link">Organisation: {{ organisation }}</div></li>
-                {% endif %}
+                {% if properties.get(c.ORG_NAME) %}
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="fa-solid fa-building-user"></i>ORG: {{ properties.get(c.ORG_NAME) }}
+                  </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/configuration"><i class="fa-solid fa-building-shield"></i> Configuration</a></li>
+                  </ul>
+                </li>
                 <li class="nav-item"><div class="nav-link">|</div></li>
                 <li class="nav-item">
-                  <a class="nav-link" href="/users">Managed Users</a>
+                  <a class="nav-link" href="/users"><i class="fa-solid fa-users"></i> User Report</a>
                 </li>
                 <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Products
+                      <i class="fa-solid fa-book"></i> Product Report
                   </a>
                   <ul class="dropdown-menu">
                       {% if products %}
@@ -57,25 +64,27 @@
                         {% endif %}
                   </ul>
                 </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="dropdown-item" href="/configuration"><i class="fa-solid fa-building-shield"></i> Configuration</a>
+                </li>
+                {% endif %}
             </ul>
-          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarToggle">
-            <div class="navbar-nav mr-auto">
-            </div>
-          </div>
+          <span class="navbar-text">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Valiantys" style="height:25px;">
+          </span>
         </div>
       </nav>
     </header>
     <main role="main" class="container">
       <div class="row">
-        <div class="col-md-12">
+        <div class="col-md-10 offset-md-1 mt-3">
           {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
               {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                   {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
               {% endfor %}
             {% endif %}
